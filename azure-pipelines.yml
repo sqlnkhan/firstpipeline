@@ -7,13 +7,43 @@
 trigger: none
 pool: saqlain-swimmers
 
+
+
+variables:
+  TF_VERSION: '1.5.0'                 # change to your Terraform version
+  TF_WORKING_DIR: '$(System.DefaultWorkingDirectory)\_work\1\s' # or path to your Terraform files
+
 steps:
-- task: AzurePowerShell@5
+# 1️⃣ Install Terraform
+- task: Bash@3
+  displayName: 'Install Terraform'
+  inputs:
+    targetType: 'inline'
+    script: |
+      curl -sLo terraform.zip https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
+      sudo unzip terraform.zip -d /usr/local/bin/
+      terraform -version
+
+# 2️⃣ Terraform Init
+- task: AzureCLI@2
+  displayName: 'Terraform Init'
   inputs:
     azureSubscription: 'saqlainserviceconnected'
-    ScriptType: 'InlineScript'
-    Inline: |
-      terraform init
-      terraform plan
-      terraform apply
-    azurePowerShellVersion: 'LatestVersion'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      cd $TF_WORKING_DIR
+      terraform init -input=false
+
+# 3️⃣ Terraform Plan
+- task: AzureCLI@2
+  displayName: 'Terraform Plan'
+  inputs:
+    azureSubscription: 'saqlainserviceconnected'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      cd $TF_WORKING_DIR
+      terraform plan -input=false -out=tfplan
+      terraform show tfplan
+
